@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Entreprise - ProGBat Integration</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Planning Entreprise</h1>
+            <div class="header-actions">
+                <div class="sync-status" id="syncStatus">
+                    <span>●</span>
+                    <span id="syncText">Non synchronisé</span>
+                </div>
+                <button class="btn btn-secondary" onclick="syncWithProGBat()">🔄 Synchroniser ProGBat</button>
+                <button class="btn btn-primary" onclick="showModal('chantierModal')">+ Nouveau chantier</button>
+                <button class="btn btn-secondary" onclick="showModal('technicienModal')">👷 Gérer techniciens</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="date-selector">
+                <button class="btn btn-secondary" onclick="changeWeek(-1)">← Semaine précédente</button>
+                <input type="date" id="currentDate" onchange="loadPlanning()">
+                <button class="btn btn-secondary" onclick="changeWeek(1)">Semaine suivante →</button>
+            </div>
+
+            <div class="color-legend">
+                <div class="color-legend-title">Légende clients :</div>
+                <div class="color-item">
+                    <div class="color-badge angers"></div>
+                    <span>Ville d'Angers</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-badge cd49"></div>
+                    <span>Conseil Départemental 49</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-badge divers"></div>
+                    <span>Divers</span>
+                </div>
+                <div class="color-item">
+                    <div class="color-badge default"></div>
+                    <span>Autres clients</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Chantiers cette semaine</h3>
+                    <div class="number" id="statChantiers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Techniciens actifs</h3>
+                    <div class="number" id="statTechniciens">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Heures planifiées</h3>
+                    <div class="number" id="statHeures">0</div>
+                </div>
+            </div>
+
+            <div class="planning-grid">
+                <table id="planningTable">
+                    <thead>
+                        <tr id="planningHeader">
+                            <th class="technicien-header">Technicien</th>
+                        </tr>
+                    </thead>
+                    <tbody id="planningBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CHANTIER -->
+    <div id="chantierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="chantierModalTitle">Nouveau chantier</h2>
+                <button class="close-btn" onclick="closeModal('chantierModal')">&times;</button>
+            </div>
+            <form onsubmit="saveChantier(event)">
+                <input type="hidden" id="chantierId">
+                <input type="hidden" id="chantierTechnicienId">
+                <input type="hidden" id="chantierDate">
+                
+                <div class="form-group">
+                    <label>Nom du chantier *</label>
+                    <input type="text" id="chantierNom" required>
+                </div>
+                <div class="form-group">
+                    <label>Client *</label>
+                    <input type="text" id="chantierClient" required>
+                </div>
+                <div class="form-group">
+                    <label>Type de client</label>
+                    <div class="client-selector">
+                        <div class="client-option" data-client="angers" onclick="selectClientType('angers')">
+                            <div class="color-preview" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"></div>
+                            <div>Ville d'Angers</div>
+                        </div>
+                        <div class="client-option" data-client="cd49" onclick="selectClientType('cd49')">
+                            <div class="color-preview" style="background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);"></div>
+                            <div>CD 49</div>
+                        </div>
+                        <div class="client-option" data-client="divers" onclick="selectClientType('divers')">
+                            <div class="color-preview" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></div>
+                            <div>Divers</div>
+                        </div>
+                        <div class="client-option selected" data-client="default" onclick="selectClientType('default')">
+                            <div class="color-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                            <div>Autre</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="chantierClientType" value="default">
+                </div>
+                <div class="form-group">
+                    <label>Technicien assigné *</label>
+                    <select id="chantierTechnicien" required>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Adresse</label>
+                    <input type="text" id="chantierAdresse">
+                </div>
+                <div class="form-group">
+                    <label>Horaires *</label>
+                    <div class="time-inputs">
+                        <div>
+                            <label style="font-size: 12px; color: #6b7280;">Heure début</label>
+                            <input type="time" id="chantierDebut" value="08:00" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #6b7280;">Heure fin</label>
+                            <input type="time" id="chantierFin" value="12:00" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="chantierNotes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select id="chantierStatut">
+                        <option value="planifie">Planifié</option>
+                        <option value="en-cours">En cours</option>
+                        <option value="termine">Terminé</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Enregistrer</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('chantierModal')" style="flex: 1;">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TECHNICIEN -->
+    <div id="technicienModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gestion des techniciens</h2>
+                <button class="close-btn" onclick="closeModal('technicienModal')">&times;</button>
+            </div>
+            
+            <form onsubmit="addTechnicien(event)" style="margin-bottom: 25px;">
+                <div class="form-group">
+                    <label>Nom *</label>
+                    <input type="text" id="technicienNom" required>
+                </div>
+                <div class="form-group">
+                    <label>Rôle *</label>
+                    <select id="technicienRole" required>
+                        <option value="chef">Chef de chantier</option>
+                        <option value="apprenti">Apprenti</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success" style="width: 100%;">Ajouter</button>
+            </form>
+
+            <h3 style="margin-bottom: 15px; color: #374151;">Équipe actuelle</h3>
+            <div id="techniciensList" class="technicien-list">
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
